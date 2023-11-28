@@ -3,19 +3,20 @@ import numpy as np
 
 def euclide_esteso(a, b):
     # caso base in cui a = 0 e b = 1
-    if a % b == 0: return (b, 0, 1) 
+    if a == 0: return (b, 0, 1) 
     else:
         # inverto i valori di 'a' e 'b' 
         mcd, c, d = euclide_esteso(b%a, a) 
 
-        # calcolo il nuovo valore di c
+        # calcolo il nuovo valore di a
         x = d - (b//a) * c
 
     return mcd, x, c
 
-print(euclide_esteso(60, 17))
-
 def esponenziazione_modulare_veloce(a, e, m) -> int:
+    if e < 0: raise Exception("L'esponente deve essere >= 0, riprovare.")
+    if m < 1: raise Exception("Il modulo deve essere >= 1, riprovare.")
+
     # l'esponente lo converto in base 2 ed elimino i primi
     # due caratteri (0b)
     e = bin(e)[2:]
@@ -31,8 +32,6 @@ def esponenziazione_modulare_veloce(a, e, m) -> int:
             c += 1
     
     return d            
-
-print(esponenziazione_modulare_veloce(3, 11, 10))
 
 def trova_m_dispari_e_r(n_1, r = 0):
     if n_1 % 2 != 0: return n_1, r
@@ -63,14 +62,9 @@ def miller_rabin(n, x = 2) -> bool:
 
     return True
 
-print(miller_rabin(41)) # F
-print(miller_rabin(15)) # V
-print(miller_rabin(561)) # V
-print(miller_rabin(17)) # F
-
 def generatore_numeri_primi(k) -> list:
     while True:
-        # 1) n = vettore di k bit casuali, il + e - significativo a 1
+        # 1) n = vettore di k bit casuali, il più e il meno significativo a 1
         n = '1'
         for _ in range(k-2): 
             n += str(random.randint(0,1))
@@ -101,19 +95,20 @@ def generatore_numeri_primi(k) -> list:
 
         if tolleranza <= tolleranza_soglia and n_primo:
             return n
+        
+def encryption_rsa(pt, e, n):
+    return esponenziazione_modulare_veloce(pt, e, n)
 
-print("Il numero primo è:", generatore_numeri_primi(200))
-
-def rsa_decryption_normale(ct, d, n):
+def decryption_normale_rsa(ct, d, n):
     return esponenziazione_modulare_veloce(ct, d, n)
 
-def rsa_decryption_crt(p, q, sp, sq, n):
-    q_inverso = euclide_esteso(q, p)[1]
-    p_inverso = euclide_esteso(p, q)[1]
-    
+def decryption_crt_rsa(ct, d, p, q, p_inverso, q_inverso, n):
+    sp = esponenziazione_modulare_veloce(ct, d, p)
+    sq = esponenziazione_modulare_veloce(ct, d, q)
+        
     return ((q*(q_inverso % p)*sp + p*(p_inverso % q)*sq) % n)
 
-def rsa():
+def genera_valori_rsa():
     # generazione di p, q
     while True: 
         p, q = generatore_numeri_primi(200), generatore_numeri_primi(200)
@@ -128,8 +123,8 @@ def rsa():
     while True:
         # considero i bit di 'n' e li divido per 8 per ottenere il numero di byte
         # genero randomicamente quei byte, mettendo il valore più sigificativo
-        # in prima posizione (più a sx) e riporto il risultato in bit
-        d = int.from_bytes(random.randbytes(int.bit_count(n)//8), "big")
+        # in prima posizione (più a sx) e riporto il risultato in intero
+        d = int.from_bytes(random.randbytes(len(bin(n))//8), "big")
         # d*e congruo 1 mod phi_n
         mcd, e, _ = euclide_esteso(d, phi_n) 
         if mcd == 1: break
@@ -142,54 +137,46 @@ def rsa():
     # potrebbe trovare 'd' per tentativi
     if e > d: e, d = d, e
 
-    '''
-    print("N", int.bit_count(n))
-    print("q", int.bit_count(d))
-    print(len(str(p)))
-    print(len(str(q)))
-    print(len(str(n)))
-    print(len(str(d)))
-    print(len(str(e)))
-    '''
-    
-    # genero 100 ct, randomicamente, di lunghezza 100 
-    iterazioni = 100
-    norm_maggiore_crt = 0
-    while iterazioni > 0:
-        ct = random.randrange(1, 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999)        
+    return n, p, q, phi_n, e, d
 
-        '''
-        print("ct", int.bit_count(ct))
-        print("r1crt", int.bit_count(resto1_crt))
-        print("r2crt", int.bit_count(resto2_crt))
-        '''
+def rsa():
+    # genero i valori per RSA
+    n, p, q, _, e, d = genera_valori_rsa()
+
+    # genero 100 pt, randomicamente, di lunghezza 1000
+    iterazioni = 100
+    numero_volte_tempo_decr_normale_maggiore_crt = 0
+    numero_volte_tempo_decr_crt_maggiore_normale = 0
+    while iterazioni > 0:
+        pt = random.randrange(2, 10**1000) 
+
+        # ottengo il ct
+        ct = encryption_rsa(pt, e, n)
+
         inizio_decr_norm = time.time()
-        uno = rsa_decryption_normale(ct, d, n)
+        decryption_normale = decryption_normale_rsa(ct, d, n)
         fine_decr_norm = time.time()
-        
-        sp = esponenziazione_modulare_veloce(ct, d, p)
-        sq = esponenziazione_modulare_veloce(ct, d, q)
+
+        # pre-computo i valori per il CRT        
+        q_inverso = euclide_esteso(q, p)[1]
+        p_inverso = euclide_esteso(p, q)[1]
         inizio_decr_crt = time.time()
-        due = rsa_decryption_crt(p, q, sp, sq, n)
+        decryption_crt = decryption_crt_rsa(ct, d, p, q, p_inverso, q_inverso, n)
         fine_decr_crt = time.time()
+
+        assert(decryption_normale == decryption_crt), "Errore in fase di decryption."
 
         diff_norm = fine_decr_norm - inizio_decr_norm
         diff_crt = fine_decr_crt - inizio_decr_crt
-        print("Norm", diff_norm)
-        print("Crt", diff_crt)
 
-        if diff_crt < diff_norm: norm_maggiore_crt += 1   
-        iterazioni -= 1        
-    
-    print(norm_maggiore_crt)
+        if diff_norm > diff_crt: numero_volte_tempo_decr_normale_maggiore_crt += 1
+        elif diff_norm < diff_crt: numero_volte_tempo_decr_crt_maggiore_normale += 1
+        print("Tempo Decr. normale: " + str(diff_norm) + ", tempo Decr. CRT: " + str(diff_crt))
+        
+        iterazioni -= 1
 
-rsa()
-
-
-
-
-
-
+    print("# volte in cui tempo della Decr. normale > Decr. Crt:", numero_volte_tempo_decr_normale_maggiore_crt)
+    print("# volte in cui tempo della Decr. Crt > Decr. normale:", numero_volte_tempo_decr_crt_maggiore_normale, "\n")
 
 # True = Composto 
 # False = forse primo
@@ -206,7 +193,9 @@ def miller_rabin_modificato(n, m, r, x = 2) -> bool:
         x_precedente = x
         x = esponenziazione_modulare_veloce(x, 2, n)
 
+        # se Xj == 1 e X_(j-1) non è congruo -1 mod n 
         if x == 1 and (x_precedente % n != - 1):
+            # restituisco il mcd
             return euclide_esteso(x_precedente + 1, n)[0]
 
         r -= 1
@@ -236,28 +225,11 @@ def rsa_3_2():
     numero_iterazioni_algoritmo = [0] * 100
 
     for i in range(100):
-        # generazione di p, q
-        while True: 
-            p, q = generatore_numeri_primi(200), generatore_numeri_primi(200)
-            if p != q: break
-            
-        # calcolo n
-        n = p*q
-        # calcolo phi(n)
-        phi_n = (p-1) * (q-1)
-
-        # genero 'd' (di circa 200 bit) ed 'e'
-        while True:
-            # considero i bit di 'n' e li divido per 8 per ottenere il numero di byte
-            # genero randomicamente quei byte, mettendo il valore più sigificativo
-            # in prima posizione (più a sx) e riporto il risultato in bit
-            d = int.from_bytes(random.randbytes(int.bit_count(n)//8), "big")
-            # d*e congruo 1 mod phi_n
-            mcd, e, _ = euclide_esteso(d, phi_n)
-            if mcd == 1: break
-
+        # genero i valori per RSA
+        n, _, _, _, e, d = genera_valori_rsa()
+        
         inizio = time.time()
-        iterazioni_algoritmo =  decryptionexp(n, d, e)
+        iterazioni_algoritmo = decryptionexp(n, d, e)
         fine = time.time()
 
         numero_iterazioni_algoritmo[i] = iterazioni_algoritmo
@@ -266,5 +238,3 @@ def rsa_3_2():
     print("# medio iterazioni:", str(sum(numero_iterazioni_algoritmo) / 100))
     print("Tempo medio esecuzione (secondi):", str(sum(tempo_esecuzione_algoritmo) / 100))
     print("Varianza (s^2):", np.var(tempo_esecuzione_algoritmo))
-
-rsa_3_2()
