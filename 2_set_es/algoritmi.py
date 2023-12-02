@@ -42,20 +42,19 @@ def trova_m_dispari_e_r(n_1, r = 0):
 # False = forse primo
 def miller_rabin(n, x = 2) -> bool:
     if n < 1: raise Exception("n deve essere >= 1, riprovare.")
-    if x >= n: raise Exception("x >= n non è ammesso, riprovare.")
+    if x >= n or x < 0: raise Exception("x >= n o x < 0 non è ammesso, riprovare.")
     if n % 2 == 0: return True
-
-    n_1 = n-1
-    m, r = trova_m_dispari_e_r(n_1)    
+    
+    m, r = trova_m_dispari_e_r(n-1)    
 
     x = esponenziazione_modulare_veloce(x, m, n)
 
     # x banale
-    if x == 1 or x == -1: return False
+    if x == 1 or x == n - 1: return False
 
     while r > 0:
         # x banale
-        if ((x % n) - n) == -1: return False
+        if x == n - 1: return False
 
         x = esponenziazione_modulare_veloce(x, 2, n)
         r -= 1
@@ -175,8 +174,8 @@ def rsa():
         
         iterazioni -= 1
 
-    print("# volte in cui tempo della Decr. normale > Decr. Crt:", numero_volte_tempo_decr_normale_maggiore_crt)
-    print("# volte in cui tempo della Decr. Crt > Decr. normale:", numero_volte_tempo_decr_crt_maggiore_normale, "\n")
+    print("# volte in cui tempo della decr. normale è stato maggiore di quello della decr. con Crt:", numero_volte_tempo_decr_normale_maggiore_crt)
+    print("# volte in cui tempo della decr. con Crt è stato maggiore di quello della decr. normale:", numero_volte_tempo_decr_crt_maggiore_normale, "\n")
 
 # True = Composto 
 # False = forse primo
@@ -184,17 +183,16 @@ def miller_rabin_modificato(n, m, r, x = 2) -> bool:
     x = esponenziazione_modulare_veloce(x, m, n)
 
     # x banale
-    if x == 1 or x == -1: return -1
+    if x == 1 or x == n - 1: return -1
 
     while r > 0:
-        # x banale
-        if ((x % n) - n) == -1: return -1
-
         x_precedente = x
         x = esponenziazione_modulare_veloce(x, 2, n)
 
+        # x banale
+        if x == n - 1: return -1
         # se Xj == 1 e X_(j-1) non è congruo -1 mod n 
-        if x == 1 and (x_precedente % n != - 1):
+        elif x == 1 and ((x_precedente % n) - n) != -1:
             # restituisco il mcd
             return euclide_esteso(x_precedente + 1, n)[0]
 
@@ -213,7 +211,7 @@ def decryptionexp(n, d, e):
 
         # mcd != 1 => ho trovato l'mcd
         if euclide_esteso(x, n)[0] != 1:
-            return 0
+            return iterazioni
 
         iterazioni += 1
         # Miller-Rabin     
