@@ -26,7 +26,7 @@ def aggiorna_valori(dizionario_percorsi: dict, chiave, valore: int):
         else:
             dizionario_percorsi[c] = valore + dizionario_percorsi.get(c)
 
-def codice_huffman(lettere: list, probabilita: list):
+def codice_huffman(lettere: list, probabilita: list) -> dict:
     if len(lettere) != len(probabilita): raise Exception("Una delle due liste ha troppi valori, riprovare.")
     if sum(probabilita) != 1: raise Exception("La somma delle probabilità non fa 1, riprovare.")
     
@@ -69,7 +69,7 @@ def codice_huffman(lettere: list, probabilita: list):
     dizionario_percorsi = {chiave: valore for chiave, valore in dizionario_percorsi.items() if len(chiave) < 2}
     return dizionario_percorsi
 
-def decodifica_huffman(codice_pf: dict, stringa_binaria):
+def decodifica_huffman(codice_pf: dict, stringa_binaria: str) -> str:
     # ad ogni iterazione
     # 1) considero una lettera alla volta nella stringa
     # 2) controllo che faccia parte del codice:
@@ -92,31 +92,32 @@ probabilita = [0.025, 0.025, 0.05, 0.1, 0.13, 0.17, 0.25, 0.25]
 print(codice_huffman(lettere, probabilita))
 
 codice = {'00000': 'a',
-           '00001': 'b',
-           '00010': 'c',
-            '00011': 'd',
-            '00100': 'e',
-            '00101': 'f',
-            '00110': 'g',
-            '00111': 'h',
-            '01000': 'i',
-            '01001': 'j',
-            '01010': 'k',
-            '01011': 'l',
-            '01100': 'm',
-            '01101': 'n',
-            '01110': 'o',
-            '01111': 'p',
-            '10000': 'q',
-            '10001': 'r',
-            '10010': 's',
-            '10011': 't',
-            '10100': 'u',
-            '10101': 'v',
-            '10110': 'w',
-            '10111': 'x',
-            '11000': 'y',
-            '11001': 'z'
+          '00001': 'b',
+          '00010': 'c',
+          '00011': 'd',
+          '00100': 'e',
+          '00101': 'f',
+          '00110': 'g',
+          '00111': 'h',
+          '01000': 'i',
+          '01001': 'j',
+          '01010': 'k',
+          '01011': 'l',
+          '01100': 'm',
+          '01101': 'n',
+          '01110': 'o',
+          '01111': 'p',
+          '10000': 'q',
+          '10001': 'r',
+          '10010': 's',
+          '10011': 't',
+          '10100': 'u',
+          '10101': 'v',
+          '10110': 'w',
+          '10111': 'x',
+          '11000': 'y',
+          '11001': 'z',
+          '11010': ' '
         }
-stringa_binaria = '0110001000011110100000000000100001001000011100110101110010000000101000100100001001110100111001101000'
+stringa_binaria = '0110001000110100111101000000000001000010010000111001101011101101001000110100000101000100100001001110100111001101000'
 print(decodifica_huffman(codice, stringa_binaria))
